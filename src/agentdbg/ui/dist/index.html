@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentDBG - AI Agent Debugger</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            background: var(--border-color);
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4c9aed;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-running {
+            background: rgba(59, 185, 80, 0.15);
+            color: var(--accent-green);
+        }
+
+        .status-paused {
+            background: rgba(210, 153, 34, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .status-error {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
+
+        /* Main content */
+        .main {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            overflow: hidden;
+        }
+
+        .panel {
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        /* Traces list */
+        .trace-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+        }
+
+        .trace-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .trace-item.active {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-blue);
+        }
+
+        .trace-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trace-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Span tree */
+        .span-tree {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+        }
+
+        .span-node {
+            padding: 6px 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+            border-left: 3px solid transparent;
+        }
+
+        .span-node:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .span-node.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-blue);
+        }
+
+        .span-node.running {
+            border-left-color: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .span-node.error {
+            border-left-color: var(--accent-red);
+        }
+
+        .span-node.paused {
+            border-left-color: var(--accent-yellow);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .span-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .span-toggle {
+            width: 16px;
+            color: var(--text-muted);
+        }
+
+        .span-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .span-icon.llm { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+        .span-icon.tool { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+        .span-icon.chain { background: rgba(59, 185, 80, 0.2); color: var(--accent-green); }
+        .span-icon.agent { background: rgba(210, 153, 34, 0.2); color: var(--accent-yellow); }
+
+        .span-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .span-duration {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .span-cost {
+            color: var(--accent-yellow);
+            font-size: 11px;
+        }
+
+        .span-children {
+            margin-left: 20px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 8px;
+        }
+
+        /* Inspector */
+        .inspector-section {
+            margin-bottom: 16px;
+        }
+
+        .inspector-section-header {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inspector-content {
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .inspector-content pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .key { color: var(--accent-blue); }
+        .string { color: var(--accent-green); }
+        .number { color: var(--accent-yellow); }
+        .boolean { color: var(--accent-purple); }
+        .null { color: var(--text-muted); }
+
+        /* Cost tracker */
+        .cost-display {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .cost-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--accent-yellow);
+        }
+
+        .cost-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Connection status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+        }
+
+        .connection-dot.connected {
+            background: var(--accent-green);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">A</div>
+                <span>AgentDBG</span>
+                <span id="debuggerStatus" class="status-badge status-running">Running</span>
+            </div>
+            <div class="controls">
+                <button id="btnPause" class="btn btn-primary" onclick="pause()">
+                    <span>⏸</span> Pause
+                </button>
+                <button id="btnResume" class="btn btn-success" onclick="resume()" style="display:none">
+                    <span>▶</span> Resume
+                </button>
+                <button id="btnStep" class="btn" onclick="step()" disabled>
+                    <span>→</span> Step
+                </button>
+                <button class="btn" onclick="clearTraces()">
+                    <span>🗑</span> Clear
+                </button>
+                <div class="connection-status">
+                    <div id="connectionDot" class="connection-dot"></div>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Traces Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Traces</span>
+                    <span id="traceCount">0</span>
+                </div>
+                <div class="panel-content" id="tracesList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div>No traces yet</div>
+                        <div style="font-size:12px;margin-top:8px">Run your agent to see traces</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Span Tree Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Execution Tree</span>
+                    <span id="spanCount">0 spans</span>
+                </div>
+                <div class="panel-content" id="spanTree">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌳</div>
+                        <div>Select a trace</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inspector Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Inspector</span>
+                </div>
+                <div class="panel-content">
+                    <!-- Cost Tracker -->
+                    <div class="cost-display">
+                        <div class="cost-value" id="totalCost">$0.0000</div>
+                        <div class="cost-label">Total Cost</div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalTokens">0</div>
+                            <div class="stat-label">Tokens</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalSpans">0</div>
+                            <div class="stat-label">Spans</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalDuration">0ms</div>
+                            <div class="stat-label">Duration</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="errorCount">0</div>
+                            <div class="stat-label">Errors</div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Span Details -->
+                    <div id="spanDetails" style="margin-top:20px">
+                        <div class="inspector-section">
+                            <div class="inspector-section-header">📥 Input</div>
+                            <div class="inspector-content" id="spanInput">
+                                <pre>Select a span to view details</pre>
+                            </div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-section-header">📤 Output</div>
+                            <div class="inspector-content" id="spanOutput">
+                                <pre>-</pre>
+                            </div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-section-header">💰 Cost</div>
+                            <div class="inspector-content" id="spanCost">
+                                <pre>-</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // State
+        let ws = null;
+        let traces = [];
+        let selectedTraceId = null;
+        let selectedSpanId = null;
+        let isPaused = false;
+
+        // WebSocket connection
+        function connect() {
+            const wsUrl = `ws://${location.hostname}:8765`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('connectionDot').classList.add('connected');
+                document.getElementById('connectionText').textContent = 'Connected';
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionDot').classList.remove('connected');
+                document.getElementById('connectionText').textContent = 'Disconnected';
+                setTimeout(connect, 2000);
+            };
+
+            ws.onerror = () => {
+                document.getElementById('connectionText').textContent = 'Error';
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            };
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'initial_state':
+                    traces = msg.data.traces || [];
+                    isPaused = msg.data.paused;
+                    updateUI();
+                    break;
+
+                case 'trace_update':
+                    updateTrace(msg.data);
+                    break;
+
+                case 'span_update':
+                    updateSpan(msg.data);
+                    break;
+
+                case 'paused':
+                    isPaused = true;
+                    updateDebuggerStatus();
+                    break;
+
+                case 'resumed':
+                    isPaused = false;
+                    updateDebuggerStatus();
+                    break;
+
+                case 'traces_cleared':
+                    traces = [];
+                    selectedTraceId = null;
+                    selectedSpanId = null;
+                    updateUI();
+                    break;
+            }
+        }
+
+        function updateTrace(traceData) {
+            const idx = traces.findIndex(t => t.trace_id === traceData.trace_id);
+            if (idx >= 0) {
+                traces[idx] = traceData;
+            } else {
+                traces.unshift(traceData);
+            }
+            renderTraces();
+            updateStats();
+
+            if (selectedTraceId === traceData.trace_id) {
+                renderSpanTree(traceData);
+            }
+        }
+
+        function updateSpan(spanData) {
+            const trace = traces.find(t => t.trace_id === spanData.trace_id);
+            if (trace) {
+                const idx = trace.spans.findIndex(s => s.span_id === spanData.span_id);
+                if (idx >= 0) {
+                    trace.spans[idx] = spanData;
+                } else {
+                    trace.spans.push(spanData);
+                }
+
+                if (selectedTraceId === spanData.trace_id) {
+                    renderSpanTree(trace);
+                }
+
+                if (selectedSpanId === spanData.span_id) {
+                    renderSpanDetails(spanData);
+                }
+            }
+            updateStats();
+        }
+
+        function updateUI() {
+            renderTraces();
+            updateDebuggerStatus();
+            updateStats();
+        }
+
+        function updateDebuggerStatus() {
+            const status = document.getElementById('debuggerStatus');
+            const btnPause = document.getElementById('btnPause');
+            const btnResume = document.getElementById('btnResume');
+            const btnStep = document.getElementById('btnStep');
+
+            if (isPaused) {
+                status.textContent = 'Paused';
+                status.className = 'status-badge status-paused';
+                btnPause.style.display = 'none';
+                btnResume.style.display = 'flex';
+                btnStep.disabled = false;
+            } else {
+                status.textContent = 'Running';
+                status.className = 'status-badge status-running';
+                btnPause.style.display = 'flex';
+                btnResume.style.display = 'none';
+                btnStep.disabled = true;
+            }
+        }
+
+        function updateStats() {
+            let totalCost = 0;
+            let totalTokens = 0;
+            let totalSpans = 0;
+            let errorCount = 0;
+
+            traces.forEach(t => {
+                totalCost += t.total_cost || 0;
+                totalTokens += t.total_tokens || 0;
+                totalSpans += (t.spans || []).length;
+                if (t.status === 'error') errorCount++;
+            });
+
+            document.getElementById('totalCost').textContent = `$${totalCost.toFixed(4)}`;
+            document.getElementById('totalTokens').textContent = totalTokens.toLocaleString();
+            document.getElementById('totalSpans').textContent = totalSpans;
+            document.getElementById('errorCount').textContent = errorCount;
+            document.getElementById('traceCount').textContent = traces.length;
+        }
+
+        function renderTraces() {
+            const container = document.getElementById('tracesList');
+
+            if (traces.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div>No traces yet</div>
+                        <div style="font-size:12px;margin-top:8px">Run your agent to see traces</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = traces.map(t => {
+                const isActive = t.trace_id === selectedTraceId;
+                const statusClass = t.status === 'error' ? 'status-error' :
+                                   t.status === 'running' ? 'status-running' : '';
+                const duration = t.end_time && t.start_time
+                    ? `${((t.end_time - t.start_time) * 1000).toFixed(0)}ms`
+                    : 'running...';
+
+                return `
+                    <div class="trace-item ${isActive ? 'active' : ''}" onclick="selectTrace('${t.trace_id}')">
+                        <div class="trace-name">
+                            <span>${t.name || 'Trace ' + t.trace_id.slice(0, 8)}</span>
+                            <span class="status-badge ${statusClass}">${t.status}</span>
+                        </div>
+                        <div class="trace-meta">
+                            <span>${(t.spans || []).length} spans</span>
+                            <span>$${(t.total_cost || 0).toFixed(4)}</span>
+                            <span>${duration}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectTrace(traceId) {
+            selectedTraceId = traceId;
+            const trace = traces.find(t => t.trace_id === traceId);
+            renderTraces();
+            renderSpanTree(trace);
+        }
+
+        function renderSpanTree(trace) {
+            const container = document.getElementById('spanTree');
+            const spans = trace?.spans || [];
+
+            document.getElementById('spanCount').textContent = `${spans.length} spans`;
+
+            if (spans.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌳</div>
+                        <div>No spans yet</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build tree structure
+            const rootSpans = spans.filter(s => !s.parent_id);
+            container.innerHTML = rootSpans.map(s => renderSpanNode(s, spans)).join('');
+        }
+
+        function renderSpanNode(span, allSpans) {
+            const children = allSpans.filter(s => s.parent_id === span.span_id);
+            const hasChildren = children.length > 0;
+            const isActive = span.span_id === selectedSpanId;
+
+            const iconClass = span.kind === 'llm_call' ? 'llm' :
+                             span.kind === 'tool_call' ? 'tool' :
+                             span.kind === 'chain' ? 'chain' : 'agent';
+
+            const icon = span.kind === 'llm_call' ? '🤖' :
+                        span.kind === 'tool_call' ? '🔧' :
+                        span.kind === 'chain' ? '⛓' :
+                        span.kind === 'agent_step' ? '🎯' : '📦';
+
+            const duration = span.duration_ms ? `${span.duration_ms.toFixed(0)}ms` : '';
+            const cost = span.cost?.total_cost ? `$${span.cost.total_cost.toFixed(4)}` : '';
+
+            return `
+                <div class="span-node ${span.status} ${isActive ? 'active' : ''}" onclick="selectSpan('${span.span_id}', event)">
+                    <div class="span-header">
+                        <span class="span-toggle">${hasChildren ? '▼' : ''}</span>
+                        <span class="span-icon ${iconClass}">${icon}</span>
+                        <span class="span-name">${span.name}</span>
+                        <span class="span-duration">${duration}</span>
+                        <span class="span-cost">${cost}</span>
+                    </div>
+                </div>
+                ${hasChildren ? `<div class="span-children">${children.map(c => renderSpanNode(c, allSpans)).join('')}</div>` : ''}
+            `;
+        }
+
+        function selectSpan(spanId, event) {
+            event.stopPropagation();
+            selectedSpanId = spanId;
+
+            const trace = traces.find(t => t.trace_id === selectedTraceId);
+            const span = trace?.spans.find(s => s.span_id === spanId);
+
+            if (span) {
+                renderSpanTree(trace);
+                renderSpanDetails(span);
+            }
+        }
+
+        function renderSpanDetails(span) {
+            document.getElementById('spanInput').innerHTML = `<pre>${formatJson(span.input_data)}</pre>`;
+            document.getElementById('spanOutput').innerHTML = `<pre>${formatJson(span.output_data)}</pre>`;
+            document.getElementById('spanCost').innerHTML = `<pre>${formatJson(span.cost)}</pre>`;
+
+            if (span.duration_ms) {
+                document.getElementById('totalDuration').textContent = `${span.duration_ms.toFixed(0)}ms`;
+            }
+        }
+
+        function formatJson(obj) {
+            if (!obj || Object.keys(obj).length === 0) return '-';
+
+            return JSON.stringify(obj, null, 2)
+                .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span class="string">"$1"</span>')
+                .replace(/: (\d+\.?\d*)/g, ': <span class="number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="boolean">$1</span>')
+                .replace(/: null/g, ': <span class="null">null</span>');
+        }
+
+        // Controls
+        function pause() {
+            ws.send(JSON.stringify({ type: 'pause' }));
+        }
+
+        function resume() {
+            ws.send(JSON.stringify({ type: 'resume' }));
+        }
+
+        function step() {
+            ws.send(JSON.stringify({ type: 'step' }));
+        }
+
+        function clearTraces() {
+            ws.send(JSON.stringify({ type: 'clear_traces' }));
+        }
+
+        // Initialize
+        connect();
+    </script>
+</body>
+</html>
