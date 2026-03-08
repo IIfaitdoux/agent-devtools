@@ -1,11 +1,11 @@
-# AgentDBG
+# Agent DevTools
 
 **Chrome DevTools for AI Agents** - Real-time debugging, pause, inspect, and step through your AI agent execution.
 
-[![PyPI version](https://badge.fury.io/py/agentdbg.svg)](https://badge.fury.io/py/agentdbg)
+[![PyPI version](https://img.shields.io/pypi/v/agent-devtools.svg)](https://pypi.org/project/agent-devtools/)
+[![Downloads](https://img.shields.io/pypi/dm/agent-devtools.svg)](https://pypi.org/project/agent-devtools/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-![AgentDBG Demo](https://via.placeholder.com/800x400?text=AgentDBG+Demo)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 ## The Problem
 
