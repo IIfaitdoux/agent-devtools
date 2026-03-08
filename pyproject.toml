@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentdbg"
+name = "agent-devtools"
 version = "0.1.0"
 description = "Chrome DevTools for AI Agents - Real-time debugging, pause, inspect, and step through your AI agent execution"
 readme = "README.md"

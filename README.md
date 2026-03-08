@@ -30,7 +30,7 @@ Existing observability tools show you **what happened** after the fact. AgentDBG
 ### Installation
 
 ```bash
-pip install agentdbg
+pip install agent-devtools
 ```
 
 ### Basic Usage
